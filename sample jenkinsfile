@@ -1,0 +1,60 @@
+pipeline {
+    
+    agent any
+    tools { --- Tools needed for the build. Jenkins support 3 tools currently. Gradle, Maven and Jdk
+         maven  'Maven' --- This is to be present in Global tool configuration in jenkins GUI
+    }
+    
+    parameters {  --- This si to paremeterize your build
+          string(name: 'VERSION', defaultValue: '', description: '' )
+          choice(name: 'VERSION', choices:['1.1.0','1.2.0','1.3.0'], description: '')
+          booleanParam(name: 'executetests', defaultValue: true, description:'')
+       environment {   # This is to define our own environment variables in Jenkins file
+       NEW_VERSION = '1.3'
+       SERVER_CREDENTIALS = credentials('server-credentials') -- Here credentials is a method that binds the credentials defined in Jenkins GUI to the JenkinsFile.. Needs Credential binding Plugin in Jenkins
+    }
+    stages {
+        
+        stage("build") {
+           
+           steps {
+                 echo "Trying to build..."
+		            echo "Building version ${NEW_VERSION}" ---# always have to give in double codes so that it will interpret the variable as per groovy 
+          }
+       }
+
+         stage("Test") {
+           when { 
+               expression {
+                    params.executetests
+		}
+           }
+           steps {
+
+                echo "Trying to test..."
+          }
+       }
+	
+          stage("deploy") {
+           
+           steps {
+
+                echo "Trying to deploy..."
+                echo "deploying version ${params.VERSION}"
+		            withCredentials([  --# This is a Groovy function that is used instead of defining the credentials as environment variable
+		          usernamePassword(credentials: 'server-credentials', usernameVariable: USER, passwordVariable: PWD)    #### Here usernamepassword function is used and the usernameVariable and passwordvariable are used to store the values seperately. This could be inturn used in the below block of code
+		])     {
+		   sh "some script ${USER} ${PWD}"
+           }
+       }
+
+    }
+      post {    # This section is for defining the post messages after each build
+        always { 
+        }
+  	   failure {
+       }
+       success {
+       }        
+   }
+
